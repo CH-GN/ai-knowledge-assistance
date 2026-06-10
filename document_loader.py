@@ -1,27 +1,19 @@
 import os
-import PyPDF2
 
-def load_documents(folder_path="data/uploaded_docs"):
+DATA_DIR = "data/uploaded_docs"
+
+def load_documents():
     documents = []
 
-    if not os.path.exists(folder_path):
-        return documents
+    for file in os.listdir(DATA_DIR):
+        path = os.path.join(DATA_DIR, file)
 
-    for filename in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, filename)
+        if file.endswith(".txt"):
+            with open(path, "r", encoding="utf-8") as f:
+                text = f.read()
 
-        if filename.lower().endswith(".pdf"):
-            with open(file_path, "rb") as f:
-                reader = PyPDF2.PdfReader(f)
-                text = ""
-                for page in reader.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text += page_text
-                documents.append(text)
-
-        elif filename.lower().endswith(".txt"):
-            with open(file_path, "r", encoding="utf-8") as f:
-                documents.append(f.read())
+                # Chunking
+                chunks = [text[i:i+500] for i in range(0, len(text), 500)]
+                documents.extend(chunks)
 
     return documents

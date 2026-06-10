@@ -1,28 +1,45 @@
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+from embeddings import generate_embeddings
+from vector_store import search_index
 
-def search_documents(query, vectorizer, document_vectors, documents, top_k=3):
+def search_documents(query, faiss_index, documents, top_k=3):
     """
-    Searches documents using cosine similarity
+    Semantic search using sentence embeddings + FAISS
     """
 
-    if vectorizer is None or document_vectors is None:
+    if faiss_index is None or not documents:
         return []
 
-    # Convert query to vector
-    query_vector = vectorizer.transform([query])
+    # Convert query → embedding
+    query_embedding = generate_embeddings([query])
+    query_embedding = np.array(query_embedding).astype("float32")
 
-    # Calculate similarity
-    similarities = cosine_similarity(query_vector, document_vectors)[0]
-
-    # Get top results
-    top_indices = similarities.argsort()[::-1][:top_k]
+    # Search FAISS index
+    indices, distances = search_index(faiss_index, query_embedding, top_k)
 
     results = []
-    for idx in top_indices:
+    for idx, dist in zip(indices, distances):
+        score = float(1 / (1 + dist))  # convert distance → confidence
         results.append({
             "content": documents[idx],
-            "score": float(similarities[idx])
+            "score": round(score, 3)
         })
 
     return results
+    
+from ranking import get_top_k
+
+def search_documents(query, index, documents, k=3):
+    query_embedding = generate_embeddings([query])
+    indices, distances = search_index(index, query_embedding, top_k=10)
+
+    results = []
+    scores = []
+
+    for i, dist in zip(indices, distances):
+        results.append(documents[i])
+        scores.append(float(1 / (1 + dist)))
+
+    top_results = get_top_k(results, scores, k)
+
+    return top_results
