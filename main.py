@@ -1,4 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
+from embeddings import generate_embeddings
+from vector_store import create_faiss_index
+import numpy as np
 import shutil
 import os
 
